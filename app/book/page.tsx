@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "../lib/firebase";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
-import { createNotification } from "../lib/notifications";
 
 export default function BookPage() {
   const router = useRouter();
@@ -33,54 +32,57 @@ export default function BookPage() {
 
     fetchTutor();
   }, [tutorId]);
-const handleBook = async () => {
-  const user = JSON.parse(localStorage.getItem("user") || "null");
 
-  if (!user) {
-    alert("You must be logged in");
-    return;
-  }
+  const handleBook = async () => {
+    if (typeof window === "undefined") return;
 
-  if (!tutorId) {
-    alert("Missing tutor ID");
-    return;
-  }
+    const user = JSON.parse(localStorage.getItem("user") || "null");
 
-  if (!date || !message) {
-    alert("Fill all fields");
-    return;
-  }
-
-  try {
-    // 1. створюємо booking
-    await addDoc(collection(db, "bookings"), {
-      tutorId,
-      student: user.email,
-      studentId: user.id,
-      date,
-      message,
-      createdAt: new Date().toISOString(),
-    });
-
-    // 2. notification (SAFE - не ламає якщо щось не так)
-    try {
-      const { createNotification } = await import("../lib/notifications");
-
-      await createNotification({
-        userId: tutorId,
-        type: "booking",
-        text: `New booking from ${user.email}`,
-      });
-    } catch (notifError) {
-      console.log("Notification failed but booking is saved:", notifError);
+    if (!user) {
+      alert("You must be logged in");
+      return;
     }
 
-    alert("Booked successfully!");
-    router.push("/dashboard");
-  } catch (error: any) {
-    alert(error.message);
-  }
-};
+    if (!tutorId) {
+      alert("Missing tutor ID");
+      return;
+    }
+
+    if (!date || !message) {
+      alert("Fill all fields");
+      return;
+    }
+
+    try {
+      // 1. booking
+      await addDoc(collection(db, "bookings"), {
+        tutorId,
+        student: user.email,
+        studentId: user.id,
+        date,
+        message,
+        createdAt: new Date().toISOString(),
+      });
+
+      // 2. notification (safe dynamic import)
+      try {
+        const { createNotification } = await import("../lib/notifications");
+
+        await createNotification({
+          userId: tutorId,
+          type: "booking",
+          text: `New booking from ${user.email}`,
+        });
+      } catch (err) {
+        console.log("Notification failed:", err);
+      }
+
+      alert("Booked successfully!");
+      router.push("/dashboard");
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
 
   if (!tutorId) {
     return (
@@ -100,13 +102,11 @@ const handleBook = async () => {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-10">
-
       <h1 className="text-3xl font-bold mb-6">
         Book lesson with {tutor.name}
       </h1>
 
       <div className="max-w-md space-y-4">
-
         <input
           type="date"
           className="w-full p-3 bg-white/10 rounded-xl"
@@ -127,9 +127,7 @@ const handleBook = async () => {
         >
           Confirm Booking
         </button>
-
       </div>
-
     </main>
   );
 }
