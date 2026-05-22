@@ -1,150 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "../lib/firebase";
 import { useRouter } from "next/navigation";
-import { auth, db } from "../lib/firebase";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
 
 export default function AuthPage() {
   const router = useRouter();
 
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [role, setRole] = useState<"student" | "tutor" | null>(null);
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleAuth = async () => {
-    if (!email || !password) return;
-
+  const handleGoogleLogin = async () => {
     try {
-      let userCredential;
+      const result = await signInWithPopup(auth, googleProvider);
 
-      // REGISTER
-      if (mode === "register") {
-        if (!role) {
-          alert("Select role");
-          return;
-        }
+      const user = result.user;
 
-        userCredential = await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-      }
-
-      // LOGIN
-      else {
-        userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-      }
-
-      const user = userCredential.user;
-
-      // 🔥 FIRESTORE SAVE (ОЦЕ ТИ ДОДАЄШ)
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        role: mode === "login" ? "student" : role,
-      });
-
-      // localStorage (поки залишаємо для UI)
+      // зберігаємо в localStorage (твоя поточна система)
       localStorage.setItem(
         "user",
         JSON.stringify({
           id: user.uid,
           email: user.email,
-          role: mode === "login" ? "student" : role,
+          name: user.displayName,
+          photo: user.photoURL,
+          role: "student",
         })
       );
 
-      router.push("/");
+      router.push("/dashboard");
     } catch (error: any) {
       alert(error.message);
     }
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-10">
-      <div className="w-full max-w-md bg-white/10 p-6 rounded-2xl">
+    <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+      <div className="bg-white/10 p-8 rounded-2xl w-[320px] text-center">
 
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          {mode === "login" ? "Login" : "Register"}
+        <h1 className="text-2xl font-bold mb-6">
+          Login
         </h1>
 
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setMode("login")}
-            className={`flex-1 py-2 rounded-xl ${
-              mode === "login" ? "bg-indigo-600" : "bg-white/10"
-            }`}
-          >
-            Login
-          </button>
-
-          <button
-            onClick={() => setMode("register")}
-            className={`flex-1 py-2 rounded-xl ${
-              mode === "register" ? "bg-indigo-600" : "bg-white/10"
-            }`}
-          >
-            Register
-          </button>
-        </div>
-
-        {mode === "register" && (
-          <div className="mb-6">
-            <p className="mb-2 text-gray-300">I am a:</p>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setRole("student")}
-                className={`flex-1 py-2 rounded-xl ${
-                  role === "student" ? "bg-indigo-600" : "bg-white/10"
-                }`}
-              >
-                Student
-              </button>
-
-              <button
-                onClick={() => setRole("tutor")}
-                className={`flex-1 py-2 rounded-xl ${
-                  role === "tutor" ? "bg-indigo-600" : "bg-white/10"
-                }`}
-              >
-                Tutor
-              </button>
-            </div>
-          </div>
-        )}
-
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-3 bg-white/10 rounded-xl mb-3"
-        />
-
-        <input
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-3 bg-white/10 rounded-xl mb-6"
-        />
-
         <button
-          onClick={handleAuth}
-          className="w-full bg-indigo-600 py-3 rounded-xl hover:bg-indigo-700"
+          onClick={handleGoogleLogin}
+          className="w-full bg-white text-black py-3 rounded-xl font-semibold"
         >
-          {mode === "login" ? "Login" : "Create account"}
+          Continue with Google
         </button>
 
       </div>

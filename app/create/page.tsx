@@ -1,81 +1,113 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { db } from "../lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
-export default function CreateTutor() {
+export default function CreateProfile() {
   const router = useRouter();
 
+  const [user, setUser] = useState<any>(null);
+
   const [name, setName] = useState("");
-  const [subject, setSubject] = useState("");
+  const [bio, setBio] = useState("");
+  const [subjects, setSubjects] = useState("");
   const [price, setPrice] = useState("");
+  const [photoURL, setPhotoURL] = useState("");
+
+  useEffect(() => {
+    const u = JSON.parse(localStorage.getItem("user") || "null");
+    setUser(u);
+  }, []);
 
   const handleCreate = async () => {
-    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (!user) return alert("Login first");
 
-    if (!user) {
-      alert("You must be logged in");
-      return;
+    if (!name || !bio || !subjects || !price) {
+      return alert("Fill all fields");
     }
 
-    if (!name || !subject || !price) {
-      alert("Fill all fields");
-      return;
-    }
-
-    const tutorData = {
-      id: user.id,
+    const data = {
+      userId: user.id,
       name,
-      subject,
-      price,
-      email: user.email,
+      bio,
+      subjects: subjects.split(",").map((s: string) => s.trim()),
+      price: Number(price),
+      photoURL: photoURL || "",
       role: "tutor",
-      createdAt: new Date().toISOString(),
+      createdAt: Date.now(),
     };
 
-    try {
-      await setDoc(doc(db, "tutors", user.id), tutorData);
+    await setDoc(doc(db, "tutors", user.id), data);
 
-      router.push("/");
-    } catch (error: any) {
-      alert(error.message);
-    }
+    // оновлюємо localStorage
+    localStorage.setItem(
+      "user",
+      JSON.stringify({ ...user, role: "tutor" })
+    );
+
+    alert("Profile created!");
+    router.push("/dashboard");
   };
+
+  if (!user) {
+    return (
+      <main className="text-white p-10">
+        Login required
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-10">
-      <h1 className="text-3xl font-bold mb-8">Create Tutor Profile</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        Create Tutor Profile
+      </h1>
 
       <div className="max-w-md space-y-4">
 
         <input
-          className="w-full p-3 bg-white/10 rounded-xl"
+          className="w-full p-3 rounded-xl bg-white/10"
           placeholder="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
-        <input
-          className="w-full p-3 bg-white/10 rounded-xl"
-          placeholder="Subject"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
+        <textarea
+          className="w-full p-3 rounded-xl bg-white/10"
+          placeholder="Bio"
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
         />
 
         <input
-          className="w-full p-3 bg-white/10 rounded-xl"
-          placeholder="Price"
+          className="w-full p-3 rounded-xl bg-white/10"
+          placeholder="Subjects (math, english...)"
+          value={subjects}
+          onChange={(e) => setSubjects(e.target.value)}
+        />
+
+        <input
+          type="number"
+          className="w-full p-3 rounded-xl bg-white/10"
+          placeholder="Price per hour"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
         />
 
+        <input
+          className="w-full p-3 rounded-xl bg-white/10"
+          placeholder="Photo URL (optional)"
+          value={photoURL}
+          onChange={(e) => setPhotoURL(e.target.value)}
+        />
+
         <button
           onClick={handleCreate}
-          className="w-full bg-indigo-600 py-3 rounded-xl hover:bg-indigo-700"
+          className="w-full bg-indigo-600 py-3 rounded-xl"
         >
-          Save
+          Create Profile
         </button>
 
       </div>
