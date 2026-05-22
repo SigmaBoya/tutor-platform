@@ -6,24 +6,32 @@ import { collection, getDocs } from "firebase/firestore";
 import { useAuthGuard } from "../lib/useAuthGuard";
 
 export default function Dashboard() {
-  useAuthGuard(); // ✅ ВАЖЛИВО — тут
+  useAuthGuard();
 
   const [user, setUser] = useState<any>(null);
   const [bookings, setBookings] = useState<any[]>([]);
 
+  // load user from localStorage
   useEffect(() => {
-    const savedUser = JSON.parse(localStorage.getItem("user") || "null");
-    setUser(savedUser);
+    const u = JSON.parse(localStorage.getItem("user") || "null");
+    setUser(u);
+  }, []);
 
+  // fetch bookings
+  useEffect(() => {
     const fetchBookings = async () => {
-      const snapshot = await getDocs(collection(db, "bookings"));
+      try {
+        const snapshot = await getDocs(collection(db, "bookings"));
 
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-      setBookings(data);
+        setBookings(data);
+      } catch (err) {
+        console.log("Error loading bookings:", err);
+      }
     };
 
     fetchBookings();
@@ -32,27 +40,26 @@ export default function Dashboard() {
   const myBookings =
     user?.role === "tutor"
       ? bookings.filter((b) => b.tutorId === user.id)
-      : bookings.filter((b) => b.student === user.email);
+      : bookings.filter((b) => b.student === user?.email);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-10">
-
       <h1 className="text-3xl font-bold mb-8">
-        Dashboard ({user?.role})
+        Dashboard ({user?.role || "loading"})
       </h1>
 
-      {myBookings.length === 0 ? (
+      {!user ? (
+        <p className="text-gray-400">Loading user...</p>
+      ) : myBookings.length === 0 ? (
         <p className="text-gray-400">No bookings yet</p>
       ) : (
         <div className="space-y-4">
-
           {myBookings.map((b) => (
             <div key={b.id} className="bg-white/10 p-5 rounded-2xl">
-
               <p><b>Date:</b> {b.date}</p>
               <p><b>Message:</b> {b.message}</p>
 
-              {user?.role === "student" ? (
+              {user.role === "student" ? (
                 <p className="text-gray-400 mt-2">
                   Tutor ID: {b.tutorId}
                 </p>
@@ -61,13 +68,10 @@ export default function Dashboard() {
                   Student: {b.student}
                 </p>
               )}
-
             </div>
           ))}
-
         </div>
       )}
-
     </main>
   );
 }

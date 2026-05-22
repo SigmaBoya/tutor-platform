@@ -9,13 +9,17 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  // load user
+  // load user (safe)
   useEffect(() => {
-    const u = JSON.parse(localStorage.getItem("user") || "null");
-    setUser(u);
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "null");
+      setUser(u);
+    } catch {
+      setUser(null);
+    }
   }, []);
 
-  // realtime notifications (FIXED)
+  // realtime notifications (safe guard)
   useEffect(() => {
     if (!user?.id) return;
 
@@ -24,19 +28,25 @@ export default function Navbar() {
       where("userId", "==", user.id)
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      setNotifications(
-        snap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
-      );
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setNotifications(
+          snap.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+        );
+      },
+      (error) => {
+        console.log("Notification error:", error);
+      }
+    );
 
     return () => unsub();
   }, [user?.id]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications?.filter((n) => !n?.read).length || 0;
 
   return (
     <div className="w-full p-4 bg-black text-white flex justify-between items-center">
@@ -56,7 +66,7 @@ export default function Navbar() {
         )}
 
         {/* 🔔 NOTIFICATIONS */}
-        {user && (
+        {user?.id && (
           <Link href="/dashboard" className="relative">
             🔔
 

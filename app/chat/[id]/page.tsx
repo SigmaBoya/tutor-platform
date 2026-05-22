@@ -18,27 +18,37 @@ export default function ChatPage() {
 
   const chatId = "global-chat";
 
-  // load user
+  // load user safely
   useEffect(() => {
-    const u = JSON.parse(localStorage.getItem("user") || "null");
-    setUser(u);
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "null");
+      setUser(u);
+    } catch {
+      setUser(null);
+    }
   }, []);
 
-  // realtime messages
+  // realtime messages (safe)
   useEffect(() => {
     const q = query(
       collection(db, "chats", chatId, "messages"),
       orderBy("createdAt", "asc")
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      setMessages(
-        snap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
-      );
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setMessages(
+          snap.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+        );
+      },
+      (err) => {
+        console.log("Chat error:", err);
+      }
+    );
 
     return () => unsub();
   }, []);
@@ -47,7 +57,7 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!text.trim()) return;
 
-    if (!user) {
+    if (!user?.id) {
       alert("Login first");
       return;
     }
@@ -78,7 +88,6 @@ export default function ChatPage() {
 
       {/* messages */}
       <div className="space-y-3 mb-6">
-
         {messages.map((m) => (
           <div
             key={m.id}
@@ -95,12 +104,10 @@ export default function ChatPage() {
             </p>
           </div>
         ))}
-
       </div>
 
       {/* input */}
       <div className="flex gap-3">
-
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -114,7 +121,6 @@ export default function ChatPage() {
         >
           Send
         </button>
-
       </div>
 
     </main>

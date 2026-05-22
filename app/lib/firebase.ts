@@ -2,19 +2,16 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// ⚠️ ВАЖЛИВО: ці значення мають бути реальні з Firebase Console
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyTEST123",
+  authDomain: "test.firebaseapp.com",
+  projectId: "test",
+  storageBucket: "test",
+  messagingSenderId: "123",
+  appId: "1:123:web:123",
 };
+// prevent double init in Next.js
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// 🔥 FIX: щоб Next.js не ініціалізував Firebase двічі
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-// services
 export const auth = getAuth(app);
 export const db = getFirestore(app);

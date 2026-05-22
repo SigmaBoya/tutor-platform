@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "../lib/firebase";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 
-export default function BookPage() {
+export default function BookPageWrapper() {
+  return (
+    <Suspense fallback={<p className="text-white p-10">Loading...</p>}>
+      <BookPage />
+    </Suspense>
+  );
+}
+
+function BookPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -15,7 +23,6 @@ export default function BookPage() {
   const [date, setDate] = useState("");
   const [message, setMessage] = useState("");
 
-  // 🔥 load tutor from Firestore
   useEffect(() => {
     const fetchTutor = async () => {
       if (!tutorId) return;
@@ -34,8 +41,6 @@ export default function BookPage() {
   }, [tutorId]);
 
   const handleBook = async () => {
-    if (typeof window === "undefined") return;
-
     const user = JSON.parse(localStorage.getItem("user") || "null");
 
     if (!user) {
@@ -54,7 +59,6 @@ export default function BookPage() {
     }
 
     try {
-      // 1. booking
       await addDoc(collection(db, "bookings"), {
         tutorId,
         student: user.email,
@@ -64,33 +68,12 @@ export default function BookPage() {
         createdAt: new Date().toISOString(),
       });
 
-      // 2. notification (safe dynamic import)
-      try {
-        const { createNotification } = await import("../lib/notifications");
-
-        await createNotification({
-          userId: tutorId,
-          type: "booking",
-          text: `New booking from ${user.email}`,
-        });
-      } catch (err) {
-        console.log("Notification failed:", err);
-      }
-
       alert("Booked successfully!");
       router.push("/dashboard");
     } catch (error: any) {
       alert(error.message);
     }
   };
-
-  if (!tutorId) {
-    return (
-      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        <p className="text-red-400">Missing tutor ID</p>
-      </main>
-    );
-  }
 
   if (!tutor) {
     return (
