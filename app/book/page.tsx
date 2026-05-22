@@ -22,6 +22,23 @@ function BookPage() {
   const [tutor, setTutor] = useState<any>(null);
   const [date, setDate] = useState("");
   const [message, setMessage] = useState("");
+  const handlePay = async () => {
+  const res = await fetch("/api/create-checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tutorName: tutor.name,
+      price: tutor.price,
+      bookingId: "temp",
+    }),
+  });
+
+  const data = await res.json();
+
+  if (data.url) {
+    window.location.href = data.url;
+  }
+};
 
   useEffect(() => {
     const fetchTutor = async () => {
@@ -110,6 +127,12 @@ function BookPage() {
         >
           Confirm Booking
         </button>
+        <button
+  onClick={handlePay}
+  className="w-full bg-green-600 py-3 rounded-xl hover:bg-green-700"
+>
+  Pay & Book
+</button>
       </div>
     </main>
   );
